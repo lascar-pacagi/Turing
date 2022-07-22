@@ -1,0 +1,224 @@
+\documentclass[a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+%\usepackage[T1]{fontenc}
+%\usepackage[frenchb]{babel}
+\usepackage{aeguill}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{textcomp}
+\usepackage{tabularx}
+\usepackage{minted}
+\usepackage{hyperref}
+%\usepackage{vaucanson}
+
+\setlength{\textheight}{240mm}
+\setlength{\textwidth}{162mm}
+\setlength{\topmargin}{-15mm}
+\setlength{\oddsidemargin}{+1mm}
+\setlength{\unitlength}{1cm}
+
+
+\newcommand{\code}[1]{\texttt{#1}}
+\newtheorem{question}{Question}
+\newtheorem{remarque}{Remarque}
+
+
+\title{Prolog --- TP Machine de Turing}
+% \author{INSA de Rennes}
+% \date{Année universitaire 2012--2013}
+\lstset{language=[ANSI]C}
+
+\begin{document}
+\maketitle
+
+\renewcommand{\labelitemi}{$\bullet$}
+\renewcommand{\labelitemii}{$\star$}
+
+On pourrait se demander si \emph{Prolog} permet de faire autant de choses qu'un langage comme \emph{Java}. Par faire ``autant de choses'', on entend
+calculer tout ce qui peut se calculer sur un ordinateur en écrivant les programmes en \emph{Java}. En fait, il s'avère que tout ce qu'on peut calculer
+sur un ordinateur peut l'être par une machine de \emph{Turing} (et vice-versa). Du coup, si on arrive à simuler une machine de \emph{Turing} en \emph{Prolog},
+on aura montré que \emph{Prolog} permet lui aussi de calculer tout ce qu'il est possible de calculer sur un ordinateur.\\
+
+Je vous invite à regarder la page \emph{Wikipédia} suivante~: \url{https://fr.wikipedia.org/wiki/Machine_de_Turing} (jusqu'à l'exemple) 
+qui résume le fonctionnement d'une machine de \emph{Turing}. On reprendra l'exemple de programme de cet article qui se traduira dans notre implémentation par le
+terme suivant~:
+\begin{minted}{prolog}
+program(
+           start, 
+           [stop], 
+           [delta(start, ' ', ' ', right, stop),
+            delta(start, 1, ' ', right, s2),
+            delta(s2, 1, 1, right, s2),
+            delta(s2, ' ', ' ', right, s3),
+            delta(s3, 1, 1, right, s3),
+            delta(s3, ' ', 1, left, s4),
+            delta(s4, 1, 1, left, s4),
+            delta(s4, ' ', ' ', left, s5),
+            delta(s5, 1, 1, left, s5),
+            delta(s5, ' ', 1, right, start)]
+       )
+\end{minted}
+
+Notons que nous représentons le symbole blanc par \verb+' '+.\\
+
+Les prédicats suivants permettent d'accéder aux différents éléments du programme~:
+\begin{minted}{prolog}
+%initial_state(+, -): program * state
+initial_state(program(InitialState, _, _), InitialState).
+
+%final_states(+, -): program * state list
+final_states(program(_, FinalStates, _), FinalStates).
+
+%transitions(+, -): program * delta list
+transitions(program(_, _, Deltas), Deltas).
+\end{minted}
+
+\indent\textbf{Question 1~:} écrire le prédicat suivant qui permet d'effectuer une transition~:
+\begin{minted}{prolog}
+%next(+, +, +, -, -, -): program * state * symbol * symbol * direction (left or right) * state
+%next(Program, State0, Symbol0, Symbol1, Dir, State1)
+\end{minted}
+
+\noindent En entrée de ce prédicat, on a le programme, l'état courant de la machine et le symbole sous la tête de lecture. On récupère le nouveau
+symbole, la direction de déplacement de la tête de lecture et le nouvel état.\\
+
+\indent\textbf{Question 2~:} on va représenter la bande par le terme~:
+\begin{minted}{prolog}
+tape(Left, Right)
+\end{minted}
+
+\noindent Le symbole sous la tête de lecture est le premier élément de \mintinline{prolog}{Right}, ce qui est à gauche de la tête de lecture est dans \mintinline{prolog}{Left} et ce qui
+est à droite est dans le reste de \mintinline{prolog}{Right}. On s'assurera que les listes \mintinline{prolog}{Left} et \mintinline{prolog}{Right} ne soient jamais vides et contiennent au moins un symbole \verb+' '+.\\
+
+\'Ecrire le prédicat~:
+\begin{minted}{prolog}
+%update_tape(+, +, +, -): tape * symbol * direction * tape 
+%update_tape(Tape, Symbol, Direction, UpdatedTape)
+\end{minted}
+qui met à jour la bande de la machine. \mintinline{prolog}{Tape} est la bande de lecture, 
+\mintinline{prolog}{Symbol} est le nouveau symbole à placer sous la tête de lecture, \mintinline{prolog}{Direction} est la direction de déplacement de la tête et 
+\mintinline{prolog}{UpdatedTape} est la nouvelle bande.\\
+
+\indent\textbf{Question 3~:} écrire le prédicat~:
+\begin{minted}{prolog}
+%run_turing_machine(+, +, -, -): program * symbol list * symbol list * state 
+%run_turing_machine(Program, Input, Output, FinalState)
+\end{minted}
+
+\noindent qui exécute le programme \mintinline{prolog}{program} sur l'entrée \mintinline{prolog}{Input} et rend la sortie \mintinline{prolog}{Output} (qui correspondra au contenu de la bande en fin d'exécution) et
+l'état final \mintinline{prolog}{FinalState}.\\
+
+\indent\textbf{Question 4~:} on voudrait pouvoir visualiser les différentes étapes de calculs effectuées par la machine de \emph{Turing}. On veut récupérer
+une liste de couples \mintinline{prolog}{(State, Tape)} où \mintinline{prolog}{State} représente un état de la machine et \mintinline{prolog}{Tape} est le contenu de la bande. Vous pourrez ensuite
+créer un fichier de type \emph{MetaPost} grâce au prédicat suivant qui vous est fourni~:
+\begin{minted}{prolog}
+%dump_to_mpost(+, +): string * (state * tape) list
+%dump_to_mpost(Filename, Dump)
+\end{minted}
+
+\noindent Ce prédicat permet d'écrire dans le fichier \mintinline{prolog}{Filename} une représentation des différentes étapes de l'exécution de la machine contenues dans la liste \mintinline{prolog}{Dump}.
+Une fois le fichier \mintinline{prolog}{Filename} généré, il vous faudra taper dans un shell~:
+\begin{minted}{bash}
+> mpost Filename
+> epstopdf Filename.1
+\end{minted}
+Vous obtiendrez alors un fichier \emph{pdf} de nom \mintinline{prolog}{Filename} qui vous permettra de visualiser les différentes étapes de l'exécution de votre programme.\\
+
+Réécrire le prédicat \mintinline{prolog}{run_turing_machine} pour qu'il produise une liste représentant les différentes étapes de l'exécution de la machine~:
+\begin{minted}{prolog}
+%run_turing_machine(+, +, -, -, -): 
+%program * symbol list * symbol list * state * (state * tape) list 
+%run_turing_machine(Program, Input, Output, FinalState, Dump)
+\end{minted}
+
+\indent\textbf{Question 5 (subsidiaire)~:} il est assez difficile d'écrire un 
+programme dans le formalisme des machines de \emph{Turing}. On va donc essayer, pour de petits programmes, de les faire
+écrire par \emph{Prolog}. On vous donne les prédicats suivants~:
+
+\begin{minted}{prolog}
+%make_pairs(+, +, -): 'a list * 'a list * ('a * 'a) list
+%make_pairs(L1, L2, PairList)
+
+%complete_list(+, +, +, +, -): 
+%(state * symbol) list * symbol list * direction list * state list * delta list 
+%complete_list(StateSymbolList, SymbolList, DirectionList, StateList, DeltaList)
+\end{minted}
+Le prédicat \mintinline{prolog}{make_pairs} permet de créer une liste contenant le produit cartésien des listes \mintinline{prolog}{L1} et \mintinline{prolog}{L2}. Par exemple~:
+\begin{minted}{prolog}
+?- make_pairs([s1, s2, s3], [' ', 1], Res).
+Res = [(s1, ' '), (s1, 1), (s2, ' '), (s2, 1), (s3, ' '), (s3, 1)]
+Yes
+\end{minted}
+Le prédicat \mintinline{prolog}{complete_list} va réussir autant de fois qu'il est possible de compléter les paires contenues dans la liste \mintinline{prolog}{StateSymbolList}
+en utilisant les symboles de \mintinline{prolog}{SymbolList}, les directions de \mintinline{prolog}{DirectionList}
+et les états de \mintinline{prolog}{StateList} pour obtenir une liste de transitions qui permettront d'écrire un programme. Par exemple~:
+\begin{minted}{prolog}
+?- complete_list([(s1, ' '), (s1, 1)], [' ', 1], [left, right], [init, s1, stop], Res).
+Res = [delta(s1, ' ', ' ', left, init), delta(s1, 1, ' ', left, init)]
+Yes
+Res = [delta(s1, ' ', ' ', left, init), delta(s1, 1, ' ', left, s1)]
+Yes
+Res = [delta(s1, ' ', ' ', left, init), delta(s1, 1, ' ', left, stop)]
+Yes
+Res = [delta(s1, ' ', ' ', left, init), delta(s1, 1, ' ', right, init)]
+Yes
+...
+\end{minted}
+
+Vous allez écrire un prédicat qui réussit autant de fois qu'il y a de programmes possibles. S'il y a deux états non terminaux \mintinline{prolog}{init} et \mintinline{prolog}{s1} et deux symboles \mintinline{prolog}{' '} et \mintinline{prolog}{1} par exemple,
+le programme comportera $4$ transitions (celles correspondantes à \mintinline{prolog}{(init, ' '), (init, 1), (s1, ' ') et (s1, 1)}). Donc, s'il y a $n$ états non terminaux
+et $m$ symboles, le programme comportera $n\times m$ transitions.
+Écrire le prédicat suivant~:
+\begin{minted}{prolog}
+%all_programs(+, +, +, +, -): state * state list * symbol list * state list * program 
+%all_programs(Init, StateList, SymbolList, FinalStateList, Program)
+\end{minted}
+où \mintinline{prolog}{Init} est l'état initial de la machine, \mintinline{prolog}{StateList} correspond aux états non terminaux sans l'état \mintinline{prolog}{Init}, \mintinline{prolog}{SymbolList} est la liste
+de symboles, et \mintinline{prolog}{FinalStateList} est la liste des états terminaux. Par exemple~: 
+
+\begin{minted}{prolog}
+?- all_programs(init, [s2, s3], [' ', 1], [left, right], [stop], Program).
+Program = program(init, [stop], 
+[delta(init, ' ', ' ', left, init), 
+ delta(init, 1, ' ', left, init), 
+ delta(s2, ' ', ' ', left, init), 
+ delta(s2, 1, ' ', left, init), 
+ delta(s3, ' ', ' ', left, init), 
+ delta(s3, 1, ' ', left, init)])
+Yes
+...
+\end{minted}
+
+On va maintenant essayer de trouver un programme permettant de calculer la valeur d'une fonction pour une entrée donnée. Cette
+fonction s'appelle la fonction du \emph{castor affairé}. Je vous invite à lire une partie de l'article suivant~: \url{https://fr.wikipedia.org/wiki/Castor_affair%C3%A9}.
+Nous allons essayer de faire découvrir à \emph{Prolog} un programme permettant de produire la valeur de cette fonction pour $n = 2$ et $n = 3$.\\
+
+Comme parmi les programmes que l'on va générer certains vont faire boucler indéfiniment la machine de \emph{Turing}, il va nous falloir modifier
+le prédicat \mintinline{prolog}{run_turing_machine} pour qu'il prenne en paramètre le nombre d'étapes maximum lors de l'exécution de la machine de \emph{Turing}
+pour le programme donné. Écrire le prédicat~:
+
+\begin{minted}{prolog}
+%run_turing_machine(+, +, -, -, -, +, +):
+%program * symbol list * symbol list * state * (state * tape) list * int 
+%run_turing_machine(Program, Input, Output, FinalState, Dump, NbMaxIter)
+\end{minted}
+
+Vous allez maintenant pouvoir écrire le prédicat suivant~:
+\begin{minted}{prolog}
+%find_busy_beaver(+, +, +, +, +, +, -): 
+%state * state list * state list * symbol list * int * int * program
+%find_busy_beaver(Init, States, FinalStates, Symbols, NbMaxIter, BusyBeaverNumber, Program)
+\end{minted}
+où \mintinline{prolog}{Init} est l'état initial de la machine, \mintinline{prolog}{States} est l'ensemble des états non terminaux sans l'état \mintinline{prolog}{init},
+\mintinline{prolog}{FinalStates} est l'ensemble des états terminaux, \mintinline{prolog}{NbMaxIter} est le nombre maximum de pas d'exécution d'une machine,
+\mintinline{prolog}{BusyBeaverNumber} est la valeur de la fonction du castor affairé et \mintinline{prolog}{Program} est un programme correspondant au castor affairé.
+En faisant l'appel suivant~:
+\begin{minted}{prolog}
+?- find_busy_beaver(init, [s1], [stop], [' ', 1], 6, 4, Program).
+\end{minted}
+vous obtiendrez les programmes correspondant au castor affairé pour $n=2$.
+Notez que normalement on ne devrait pas connaître le nombre d'itérations maximal et la valeur $n$ à l'avance, mais ce n'est pas trop difficile
+d'adapter pour pouvoir s'en passer.
+
+\end{document}
