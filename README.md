@@ -35,4 +35,4 @@ main :-
 
 If you want to do the lab you can find the subject (in french) in the `tp.pdf` file, a skeleton in the `skeleton.ecl` file and the solution in `solution.ecl`
 
-![Run](turing_run.pdf)
+![Run](turing_run.png)
